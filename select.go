@@ -1,8 +1,8 @@
 package Go_ORM
 
 import (
+	"Go_ORM/internal/errs"
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -92,7 +92,7 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 		s.sb.WriteByte('?')
 		s.addArg(exp.val)
 	default:
-		fmt.Errorf("orm: 不支持的表达式 %v", expr)
+		return errs.NewErrUnsupportedExpression(expr)
 	}
 	return nil
 }
