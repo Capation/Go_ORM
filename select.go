@@ -3,12 +3,12 @@ package Go_ORM
 import (
 	"Go_ORM/internal/errs"
 	"context"
-	"reflect"
 	"strings"
 )
 
 type Selector[T any] struct {
 	table string
+	model *model
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
@@ -17,6 +17,11 @@ type Selector[T any] struct {
 func (s *Selector[T]) Build() (*Query, error) {
 	// 是指针的话要先初始化好
 	s.sb = &strings.Builder{}
+	var err error
+	s.model, err = parseMode(new(T))
+	if err != nil {
+		return nil, err
+	}
 	sb := s.sb
 	sb.WriteString("SELECT * FROM ")
 	// 我怎么把表名拿到 --> 反射
@@ -24,10 +29,8 @@ func (s *Selector[T]) Build() (*Query, error) {
 	// 如果用户没有指定表名, 我们就用类型名
 	// 决策: 如果用户指定了表名, 就直接使用, 不会使用反引号; 否则使用反引号括起来
 	if s.table == "" {
-		var t T
-		typ := reflect.TypeOf(t)
 		sb.WriteByte('`')
-		sb.WriteString(typ.Name())
+		sb.WriteString(s.model.tableName)
 		sb.WriteByte('`')
 	} else {
 		sb.WriteString(s.table)
@@ -85,8 +88,14 @@ func (s *Selector[T]) buildExpression(expr Expression) error {
 			s.sb.WriteByte(')')
 		}
 	case Column:
+
+		fd, ok := s.model.fileMap[exp.name]
+		// 字段不对或者 列不对
+		if !ok {
+			return errs.NewErrUnknownField(exp.name)
+		}
 		s.sb.WriteByte('`')
-		s.sb.WriteString(exp.name)
+		s.sb.WriteString(fd.colName)
 		s.sb.WriteByte('`')
 	case value:
 		s.sb.WriteByte('?')
