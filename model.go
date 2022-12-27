@@ -17,8 +17,38 @@ type field struct {
 	colName string
 }
 
+//var models = map[reflect.Type]*model{}
+
+// registry 代表元数据的注册中心
+type registry struct {
+	models map[reflect.Type]*model
+}
+
+// 全局变量
+//var defaultRegistry = &registry{models: map[reflect.Type]*model{}}
+
+func NewRegistry() *registry {
+	return &registry{
+		models: make(map[reflect.Type]*model, 64),
+	}
+}
+
+func (r *registry) Get(val any) (*model, error) {
+	typ := reflect.TypeOf(val)
+	m, ok := r.models[typ]
+	if !ok {
+		var err error
+		m, err = r.parseMode(val)
+		if err != nil {
+			return nil, err
+		}
+		r.models[typ] = m
+	}
+	return m, nil
+}
+
 // 限制只能用一级指针
-func parseMode(entity any) (*model, error) {
+func (r *registry) parseMode(entity any) (*model, error) {
 	typ := reflect.TypeOf(entity)
 	if typ.Kind() != reflect.Pointer || typ.Elem().Kind() != reflect.Struct {
 		return nil, errs.ErrPointerOnly

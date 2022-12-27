@@ -12,13 +12,22 @@ type Selector[T any] struct {
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
+
+	db *DB
+}
+
+func NewSelector[T any](db *DB) *Selector[T] {
+	return &Selector[T]{
+		sb: &strings.Builder{},
+		db: db,
+	}
 }
 
 func (s *Selector[T]) Build() (*Query, error) {
 	// 是指针的话要先初始化好
-	s.sb = &strings.Builder{}
+	//s.sb = &strings.Builder{}
 	var err error
-	s.model, err = parseMode(new(T))
+	s.model, err = s.db.r.Get(new(T))
 	if err != nil {
 		return nil, err
 	}
