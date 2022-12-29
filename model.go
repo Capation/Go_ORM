@@ -3,6 +3,7 @@ package Go_ORM
 import (
 	"Go_ORM/internal/errs"
 	"reflect"
+	"sync"
 	"unicode"
 )
 
@@ -21,31 +22,59 @@ type field struct {
 
 // registry 代表元数据的注册中心
 type registry struct {
-	models map[reflect.Type]*model
+	// 读写锁
+	//lock   sync.RWMutex
+	models sync.Map
 }
 
 // 全局变量
 //var defaultRegistry = &registry{models: map[reflect.Type]*model{}}
 
 func NewRegistry() *registry {
-	return &registry{
-		models: make(map[reflect.Type]*model, 64),
-	}
+	return &registry{}
 }
 
 func (r *registry) Get(val any) (*model, error) {
 	typ := reflect.TypeOf(val)
-	m, ok := r.models[typ]
-	if !ok {
-		var err error
-		m, err = r.parseMode(val)
-		if err != nil {
-			return nil, err
-		}
-		r.models[typ] = m
+	m, ok := r.models.Load(typ)
+	if ok {
+		return m.(*model), nil
 	}
-	return m, nil
+	m, err := r.parseMode(val)
+	if err != nil {
+		return nil, err
+	}
+	r.models.Store(typ, m)
+	return m.(*model), nil
 }
+
+//func (r *registry) Get1(val any) (*model, error) {
+//	typ := reflect.TypeOf(val)
+//	// 读锁
+//	r.lock.RLock()
+//	m, ok := r.models[typ]
+//	r.lock.RUnlock()
+//	if ok {
+//		return m, nil
+//	}
+//
+//	// 加写锁，准备解析你的数据
+//	r.lock.Lock()
+//	defer r.lock.Unlock()
+//
+//	m, ok = r.models[typ]
+//	if ok {
+//		return m, nil
+//	}
+//
+//	m, err := r.parseMode(val)
+//	if err != nil {
+//		return nil, err
+//	}
+//	r.models[typ] = m
+//
+//	return m, nil
+//}
 
 // 限制只能用一级指针
 func (r *registry) parseMode(entity any) (*model, error) {
