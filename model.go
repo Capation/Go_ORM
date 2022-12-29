@@ -105,8 +105,18 @@ func (r *registry) parseMode(entity any) (*model, error) {
 			colName: colName,
 		}
 	}
+
+	// 接口自定义表名
+	var tableName string
+	if tbl, ok := entity.(TableName); ok {
+		tableName = tbl.TableName()
+	}
+	if tableName == "" {
+		tableName = underscoreName(typ.Name())
+	}
+
 	return &model{
-		tableName: underscoreName(typ.Name()),
+		tableName: tableName,
 		fileMap:   fieldMap,
 	}, nil
 }

@@ -174,6 +174,45 @@ func TestRegistry_Get(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name:   "table name",
+			entity: &CustomTableName{},
+			wantModel: &model{
+				tableName: "custom_table_name_t",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name",
+					},
+				},
+			},
+		},
+
+		{
+			name:   "table name ptr",
+			entity: &CustomTableNamePtr{},
+			wantModel: &model{
+				tableName: "custom_table_name_ptr_t",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name",
+					},
+				},
+			},
+		},
+
+		{
+			name:   "empty table name",
+			entity: &EmptyTableName{},
+			wantModel: &model{
+				tableName: "empty_table_name",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name",
+					},
+				},
+			},
+		},
 	}
 
 	r := NewRegistry()
@@ -193,4 +232,29 @@ func TestRegistry_Get(t *testing.T) {
 			assert.Equal(t, tc.wantModel, cache)
 		})
 	}
+}
+
+// Go里面 结构体实现接口 与 结构体指针实现接口 两者是不等价的
+type CustomTableName struct {
+	FirstName string
+}
+
+func (c CustomTableName) TableName() string {
+	return "custom_table_name_t"
+}
+
+type CustomTableNamePtr struct {
+	FirstName string
+}
+
+func (c *CustomTableNamePtr) TableName() string {
+	return "custom_table_name_ptr_t"
+}
+
+type EmptyTableName struct {
+	FirstName string
+}
+
+func (c *EmptyTableName) TableName() string {
+	return ""
 }
