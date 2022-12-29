@@ -3,8 +3,13 @@ package Go_ORM
 import (
 	"Go_ORM/internal/errs"
 	"reflect"
+	"strings"
 	"sync"
 	"unicode"
+)
+
+const (
+	tagTestColumn = "column"
 )
 
 type model struct {
@@ -87,14 +92,42 @@ func (r *registry) parseMode(entity any) (*model, error) {
 	fieldMap := make(map[string]*field, numField)
 	for i := 0; i < numField; i++ {
 		fd := typ.Field(i)
+		pair, err := r.parseTag(fd.Tag)
+		if err != nil {
+			return nil, err
+		}
+		colName := pair[tagTestColumn]
+		if colName == "" {
+			// 用户没有设置，我们就给它转
+			colName = underscoreName(fd.Name)
+		}
 		fieldMap[fd.Name] = &field{
-			colName: underscoreName(fd.Name),
+			colName: colName,
 		}
 	}
 	return &model{
 		tableName: underscoreName(typ.Name()),
 		fileMap:   fieldMap,
 	}, nil
+}
+
+func (r *registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
+	ormTag, ok := tag.Lookup("orm")
+	if !ok {
+		return map[string]string{}, nil
+	}
+	pairs := strings.Split(ormTag, ",")
+	res := make(map[string]string, len(pairs))
+	for _, pair := range pairs {
+		segs := strings.Split(pair, "=")
+		if len(segs) != 2 {
+			return nil, errs.NewErrInvalidTagContent(pair)
+		}
+		key := segs[0]
+		val := segs[1]
+		res[key] = val
+	}
+	return res, nil
 }
 
 // underscoreName 驼峰转字符串命名

@@ -3,6 +3,7 @@ package Go_ORM
 import (
 	"Go_ORM/internal/errs"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 )
 
@@ -82,8 +83,6 @@ func TestRegistry_Get(t *testing.T) {
 
 		wantModel *model
 		wantErr   error
-
-		cacheSize int
 	}{
 		{
 			name:   "pointer",
@@ -105,8 +104,75 @@ func TestRegistry_Get(t *testing.T) {
 					},
 				},
 			},
+		},
 
-			cacheSize: 1,
+		{
+			name: "tag",
+			// 局部匿名方法
+			entity: func() any {
+				type TagTable struct {
+					FirstName string `orm:"column=first_name_t"`
+				}
+				return &TagTable{}
+			}(),
+			wantModel: &model{
+				tableName: "tag_table",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name_t",
+					},
+				},
+			},
+		},
+
+		{
+			name: "empty column",
+			// 局部匿名方法
+			entity: func() any {
+				type TagTable struct {
+					FirstName string `orm:"column="`
+				}
+				return &TagTable{}
+			}(),
+			wantModel: &model{
+				tableName: "tag_table",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name",
+					},
+				},
+			},
+		},
+
+		{
+			name: "column only",
+			// 局部匿名方法
+			entity: func() any {
+				type TagTable struct {
+					FirstName string `orm:"column"`
+				}
+				return &TagTable{}
+			}(),
+			wantErr: errs.NewErrInvalidTagContent("column"),
+		},
+
+		{
+			name: "ignore tag",
+			// 局部匿名方法
+			entity: func() any {
+				type TagTable struct {
+					FirstName string `orm:"abc=abc"`
+				}
+				return &TagTable{}
+			}(),
+			wantModel: &model{
+				tableName: "tag_table",
+				fileMap: map[string]*field{
+					"FirstName": {
+						colName: "first_name",
+					},
+				},
+			},
 		},
 	}
 
@@ -120,12 +186,11 @@ func TestRegistry_Get(t *testing.T) {
 				return
 			}
 			assert.Equal(t, tc.wantModel, m)
-			//assert.Equal(t, tc.cacheSize, len(r.models))
 
-			//typ := reflect.TypeOf(tc.entity)
-			//m, ok := r.models[typ]
-			//assert.True(t, ok)
-			//assert.Equal(t, tc.wantModel, m)
+			typ := reflect.TypeOf(tc.entity)
+			cache, ok := r.models.Load(typ)
+			assert.True(t, ok)
+			assert.Equal(t, tc.wantModel, cache)
 		})
 	}
 }
