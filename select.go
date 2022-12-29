@@ -8,7 +8,7 @@ import (
 
 type Selector[T any] struct {
 	table string
-	model *model
+	model *Model
 	where []Predicate
 	sb    *strings.Builder
 	args  []any
