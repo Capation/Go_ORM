@@ -2,7 +2,11 @@ module Go_ORM
 
 go 1.18
 
-require github.com/stretchr/testify v1.8.1
+require (
+	github.com/go-sql-driver/mysql v1.7.0
+	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/stretchr/testify v1.8.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

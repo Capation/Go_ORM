@@ -12,8 +12,11 @@ const (
 	tagTestColumn = "column"
 )
 
+// Registry 元数据注册中心的抽象
 type Registry interface {
+	// Get 查找元数据
 	Get(val any) (*Model, error)
+	// Register 注册一个模型
 	Register(val any, opts ...ModelOpt) (*Model, error)
 }
 
